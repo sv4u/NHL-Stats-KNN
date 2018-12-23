@@ -1,0 +1,202 @@
+---
+title: "NHL Stats KNN"
+author: "Sasank Vishnubhatla"
+date: "Friday, December 21, 2018"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r, echo = FALSE}
+rm(list = ls())
+
+seed = 15224
+set.seed(seed)
+```
+
+## Inspiration
+
+In the NHL, there are superstars, elite players, middle of the pack fillers, and waiver-wire warriors. Much like in the MLB, teams dip deep into their farm system and sometimes replace players that are not performing. At the end of the year, the best players usually end up with the most points scored, while average players usually sit in the middle of the pack, while enforcers and developing players sit near the bottom. Most analysts and fans agree that ranking players by their point production is one of the best ways to determine how good the player is. Using machine learning, I'm going to test that hypothesis and see if it is possible to accurately predict a player's rank given solely their core stats.
+
+The package we will be using is the caret package. Caret has over 100 machine learning algorithms, one of them being the K Nearest Neighbors algorithm.
+
+```{r}
+library(caret)
+library(dplyr)
+```
+
+Instead of eyeballing the data and determining tiers like that, the K Nearest Neighbors (KNN) algorithm looks at each point and determines it's class based on it's neighbors. By using this algorithm, we can see boundaries in the data and see which players are similar to other. From this, we will be able to see artificial tiers that are prevalent statistically. However, if the boundaries are too small or there are too many classes, then there more likely to be no tiers.
+
+## Data
+
+The data used to train will be from the 2016-2017 season. All the data was taken from [Hockey Reference](www.hockey-reference.com).
+
+```{r}
+rawData = as.data.frame(read.csv("complete.csv", header = TRUE))
+```
+
+Our data is not in a nice form and contains some information that we don't need. So, let's reconfigure our dataset. Here's a list of fields we'll need to get:
+
+- Names
+- Goals
+- Assists
+- Plus/Minus
+- Penalty Minutes
+- Game Winning Goals
+- Shots
+- Blocks
+- Hits
+- Faceoff Win Percentage
+
+We'll be looking at players that played at least 20 games. So, we need to get all the players that have played at least 20 games.
+
+```{r}
+data16 = rawData[rawData$Season == 2016,]
+totalData = data.frame("name" = data16$Player,
+					   "gp" = data16$GP,
+					   "rank" = data16$Rk,
+				  "goals" = data16$G,
+				  "assists" = data16$A,
+				  "pm" = data16$plusminus,
+				  "pim" = data16$PIM,
+				  "gwg" = data16$GW,
+				  "shots" = data16$S,
+				  "blocks" = data16$BLK,
+				  "hits" = data16$HIT,
+				  "fowp" = data16$FO_percent)
+```
+
+Now that we have the data, we can recreate the dataframe for the KNN model. I'll include the rank so that I can match the data to the name later on after we've trained the model. However, the rank will not go into the model.
+
+```{r}
+trainData = totalData[totalData$gp > 19,]
+trainData = subset(trainData, select = c(-1, -2))
+```
+
+Now with the training data, we can create our KNN model. For the model, we'll want the output to be rank, as the higher the rank, the better the player is. First we have to pre-process our data, then we can train 2 models: a control model and the KNN model.
+
+```{r}
+trainRank = trainData[, names(trainData) != "rank"]
+preprocess = preProcess(x = trainRank, method = c("center", "scale"))
+```
+
+Now that we've pre-processed our data, let's create the two models.
+
+```{r}
+controlModel = trainControl(method = "repeatedcv", repeats = 5)
+knnModel = train(rank ~ ., data = trainData, method = "knn", trControl = controlModel, preProcess = c("center", "scale"), tuneLength = 25)
+```
+
+Now, let's see what the `knnModel` returns:
+
+```{r}
+knnModel
+```
+
+## Testing Players from Last Year (2017-2018)
+
+Using our KNN model, let's test a few players from last year. Here is the list of players I'm selecting:
+
+- Sidney Crosby (rank 2)
+- Alexander Ovechkin (rank 21)
+- Eric Staal (rank 29)
+- Anze Kopitar (rank 89)
+- John Klingberg (rank 107)
+- Brayden Point (rank  161)
+- Tom Wilson (rank 356)
+- Austin Watson (rank 390)
+- Ryan Reaves (rank 449)
+
+
+So let's make our testing data frame.
+
+```{r}
+data17 = rawData[rawData$Season == 2017,]
+testData = data.frame("name" = data17$Player,
+					   "gp" = data17$GP,
+					   "rank" = data17$Rk,
+				  "goals" = data17$G,
+				  "assists" = data17$A,
+				  "pm" = data17$plusminus,
+				  "pim" = data17$PIM,
+				  "gwg" = data17$GW,
+				  "shots" = data17$S,
+				  "blocks" = data17$BLK,
+				  "hits" = data17$HIT,
+				  "fowp" = data17$FO_percent)
+selectRanks = c(2, 21, 29, 89, 107, 161, 356, 390, 449)
+testData = testData[testData$rank %in% selectRanks,]
+testingData = subset(testData, select = c(-1, -2))
+```
+
+Now, let's use the predict function to predict for each of these players.
+
+```{r}
+knnPrediction = predict.train(knnModel, newdata = testingData)
+```
+
+So, our predictions are:
+
+```{r}
+knnPrediction
+```
+
+So, let's match the prediction with the player now:
+
+```{r}
+comparison = subset(testData, select = c(1, 3))
+comparison$prediction = knnPrediction
+comparison
+```
+
+With just one year of data, we see that our model under predicts most players in their rank. So, let's re-train our model but with multiple years of data.
+
+## Re-training the Model With 5 Years Worth of Data
+
+Let's use data from 2011-2012 to 2016-2017 instead of just one year of data.
+
+```{r}
+years = c(2012, 2013, 2014, 2015, 2016)
+data1116 = rawData[rawData$Season %in% years,]
+totalData = data.frame("name" = data1116$Player,
+					   "gp" = data1116$GP,
+					   "rank" = data1116$Rk,
+				  "goals" = data1116$G,
+				  "assists" = data1116$A,
+				  "pm" = data1116$plusminus,
+				  "pim" = data1116$PIM,
+				  "gwg" = data1116$GW,
+				  "shots" = data1116$S,
+				  "blocks" = data1116$BLK,
+				  "hits" = data1116$HIT,
+				  "fowp" = data1116$FO_percent)
+
+trainData = totalData[totalData$gp > 19,]
+trainData = subset(trainData, select = c(-1, -2))
+
+controlModel = trainControl(method = "repeatedcv", repeats = 5)
+knnModel = train(rank ~ ., data = trainData, method = "knn", trControl = controlModel, preProcess = c("center", "scale"), tuneLength = 25)
+```
+
+So, our new model looks like this:
+
+```{r}
+knnModel
+```
+
+We can now re-test it:
+
+```{r}
+knnPrediction = predict.train(knnModel, newdata = testingData)
+```
+
+So, let's match the prediction with the player now:
+
+```{r}
+newComparison = subset(testData, select = c(1, 3))
+newComparison$prediction = knnPrediction
+newComparison
+```
+
+So, we can see with the new data, our model still isn't able to pinpoint the ranks as well as we'd expect. This just shows how variable scoring is year to year, and how difficult it is to be consistent in the NHL.
