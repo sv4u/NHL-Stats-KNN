@@ -1,3 +1,5 @@
+# NHL Stats KNN
+
 ## Inspiration
 
 In the NHL, there are superstars, elite players, middle of the pack
