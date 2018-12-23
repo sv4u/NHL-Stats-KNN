@@ -3,9 +3,8 @@ title: "NHL Stats KNN"
 author: "Sasank Vishnubhatla"
 date: "Friday, December 21, 2018"
 output:
-  pdf_document: default
-  html_document:
-    df_print: paged
+  md_document:
+    variant: gfm
 ---
 
 ```{r, echo = FALSE}
@@ -200,3 +199,7 @@ newComparison
 ```
 
 So, we can see with the new data, our model still isn't able to pinpoint the ranks as well as we'd expect. This just shows how variable scoring is year to year, and how difficult it is to be consistent in the NHL.
+
+```{r, include=FALSE}
+file.rename(from = "NHL_Stats_KNN.md", to = "README.md")
+```
