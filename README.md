@@ -1,5 +1,4 @@
-Inspiration
------------
+## Inspiration
 
 In the NHL, there are superstars, elite players, middle of the pack
 fillers, and waiver-wire warriors. Much like in the MLB, teams dip deep
@@ -42,14 +41,13 @@ library(dplyr)
 
 Instead of eyeballing the data and determining tiers like that, the K
 Nearest Neighbors (KNN) algorithm looks at each point and determines
-it’s class based on it’s neighbors. By using this algorithm, we can see
-boundaries in the data and see which players are similar to other. From
-this, we will be able to see artificial tiers that are prevalent
+it’s class based on it’s neighbors. By using this algorithm, we can
+see boundaries in the data and see which players are similar to other.
+From this, we will be able to see artificial tiers that are prevalent
 statistically. However, if the boundaries are too small or there are too
 many classes, then there more likely to be no tiers.
 
-Data
-----
+## Data
 
 The data used to train will be from the 2016-2017 season. All the data
 was taken from [Hockey Reference](www.hockey-reference.com).
@@ -62,16 +60,16 @@ Our data is not in a nice form and contains some information that we
 don’t need. So, let’s reconfigure our dataset. Here’s a list of fields
 we’ll need to get:
 
--   Names
--   Goals
--   Assists
--   Plus/Minus
--   Penalty Minutes
--   Game Winning Goals
--   Shots
--   Blocks
--   Hits
--   Faceoff Win Percentage
+  - Names
+  - Goals
+  - Assists
+  - Plus/Minus
+  - Penalty Minutes
+  - Game Winning Goals
+  - Shots
+  - Blocks
+  - Hits
+  - Faceoff Win Percentage
 
 We’ll be looking at players that played at least 20 games. So, we need
 to get all the players that have played at least 20 games.
@@ -165,21 +163,20 @@ knnModel
     ## RMSE was used to select the optimal model using the smallest value.
     ## The final value used for the model was k = 7.
 
-Testing Players from Last Year (2017-2018)
-------------------------------------------
+## Testing Players from Last Year (2017-2018)
 
 Using our KNN model, let’s test a few players from last year. Here is
 the list of players I’m selecting:
 
--   Sidney Crosby (rank 2)
--   Alexander Ovechkin (rank 21)
--   Eric Staal (rank 29)
--   Anze Kopitar (rank 89)
--   John Klingberg (rank 107)
--   Brayden Point (rank 161)
--   Tom Wilson (rank 356)
--   Austin Watson (rank 390)
--   Ryan Reaves (rank 449)
+  - Sidney Crosby (rank 2)
+  - Alexander Ovechkin (rank 21)
+  - Eric Staal (rank 29)
+  - Anze Kopitar (rank 89)
+  - John Klingberg (rank 107)
+  - Brayden Point (rank 161)
+  - Tom Wilson (rank 356)
+  - Austin Watson (rank 390)
+  - Ryan Reaves (rank 449)
 
 So let’s make our testing data frame.
 
@@ -209,7 +206,8 @@ players.
 knnPrediction = predict.train(knnModel, newdata = testingData)
 ```
 
-So, our predictions are:
+So, our predictions
+    are:
 
 ``` r
 knnPrediction
@@ -241,8 +239,7 @@ With just one year of data, we see that our model under predicts most
 players in their rank. So, let’s re-train our model but with multiple
 years of data.
 
-Re-training the Model With 5 Years Worth of Data
-------------------------------------------------
+## Re-training the Model With 5 Years Worth of Data
 
 Let’s use data from 2011-2012 to 2016-2017 instead of just one year of
 data.
